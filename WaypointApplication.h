@@ -2,15 +2,15 @@
 #define WAYPOINTAPPLICATION_H
 
 #include <QMainWindow>
-#include "WaypointRoute.h"
+
+class WaypointRoute;
 
 class WaypointApplication: public QMainWindow
 {
   Q_OBJECT
 
 public:
-  explicit WaypointApplication(QWidget* parent = nullptr);
-  explicit WaypointApplication(WaypointRoute* route, QWidget* parent = nullptr);
+  explicit WaypointApplication(const WaypointRoute& database, QWidget* parent = nullptr);
 
   ~WaypointApplication();
 

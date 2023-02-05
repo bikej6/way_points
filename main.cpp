@@ -9,9 +9,9 @@ int main(int argc, char* argv[])
   QApplication a(argc, argv);
 
   WaypointDatabase database;
-  auto routes = std::make_unique<WaypointRoute>(database);
+  WaypointRoute routes(database);
 
-  WaypointApplication main_window(routes.get());
+  WaypointApplication main_window(routes);
   main_window.show();
 
   return a.exec();

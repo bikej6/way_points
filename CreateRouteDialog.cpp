@@ -2,14 +2,14 @@
 
 #include <QDebug>
 #include <QMessageBox>
-
 #include "WaypointListItem.h"
+#include "WaypointRoute.h"
 #include "ui_CreateRouteDialog.h"
 
 class CreateRouteDialog::Private: public Ui::CreateRouteDialogBase
 {
 public:
-  explicit Private(CreateRouteDialog* parent, const QStringList& points);
+  explicit Private(const WaypointRoute& database, CreateRouteDialog* parent);
   ~Private() = default;
 
   void addWaypoint();
@@ -23,40 +23,42 @@ private:
   int itemPosition(WaypointListItem* item) const;
   void setRemovable() const;
   void toggleAddWaypointButton() const;
+  void toggleSaveButton() const;
   void clearLayout();
-  void outputPoints();
 
   CreateRouteDialog* m_parent;
+  WaypointRoute m_database;
 
   static constexpr auto LAYOUT_MIN_ELEMENTS = 1;
+  static constexpr auto MIN_ELEMENTS_TO_SAVE = 2;
   static constexpr auto MIN_ELEMENTS_TO_REMOVE = 3;
 };
 
-CreateRouteDialog::Private::Private(CreateRouteDialog* parent, const QStringList& points)
+CreateRouteDialog::Private::Private(const WaypointRoute& database, CreateRouteDialog* parent)
   : m_parent(parent)
+  , m_database(database)
 {
   setupUi(parent);
 
   connect(ui_add_waypoint_button, &QPushButton::clicked, m_parent, &CreateRouteDialog::addWaypoint);
-  connect(ui_output, &QPushButton::clicked, [this]() { outputPoints(); });
-  connect(ui_button_box, &QDialogButtonBox::rejected, m_parent, &CreateRouteDialog::reject);
-  connect(ui_button_box, &QDialogButtonBox::accepted, m_parent, &CreateRouteDialog::accept);
+  connect(ui_edit, &QPushButton::clicked, [this]() { initializeWaypoints(m_database.route(0)); });
+  connect(ui_cancel_button, &QPushButton::clicked, m_parent, &CreateRouteDialog::reject);
+  connect(ui_save_button, &QPushButton::clicked, m_parent, &CreateRouteDialog::accept);
 
-  if (points.isEmpty())
-  {
-    const auto start_point = dynamic_cast<WaypointListItem*>(ui_waypoint_items_list_layout->itemAt(0)->widget());
-    const auto end_point = dynamic_cast<WaypointListItem*>(ui_waypoint_items_list_layout->itemAt(1)->widget());
+  const auto start_point = dynamic_cast<WaypointListItem*>(ui_waypoint_items_list_layout->itemAt(0)->widget());
+  const auto end_point = dynamic_cast<WaypointListItem*>(ui_waypoint_items_list_layout->itemAt(1)->widget());
 
-    connect(start_point, &WaypointListItem::emptinessChanged, [this]() { toggleAddWaypointButton(); });
-    connect(start_point, &WaypointListItem::deleteItem, m_parent, &CreateRouteDialog::removeWaypoint);
+  connect(start_point, &WaypointListItem::emptinessChanged, [this]() {
+    toggleAddWaypointButton();
+    toggleSaveButton();
+  });
+  connect(start_point, &WaypointListItem::deleteItem, m_parent, &CreateRouteDialog::removeWaypoint);
 
-    connect(end_point, &WaypointListItem::emptinessChanged, [this]() { toggleAddWaypointButton(); });
-    connect(end_point, &WaypointListItem::deleteItem, m_parent, &CreateRouteDialog::removeWaypoint);
-  }
-  else
-  {
-    initializeWaypoints(points);
-  }
+  connect(end_point, &WaypointListItem::emptinessChanged, [this]() {
+    toggleAddWaypointButton();
+    toggleSaveButton();
+  });
+  connect(end_point, &WaypointListItem::deleteItem, m_parent, &CreateRouteDialog::removeWaypoint);
 }
 
 void CreateRouteDialog::Private::initializeWaypoints(const QStringList& points)
@@ -90,11 +92,15 @@ void CreateRouteDialog::Private::insertConnectItem(WaypointListItem* item)
 
   ui_waypoint_items_list_layout->insertWidget(position, item);
 
-  connect(item, &WaypointListItem::emptinessChanged, [this]() { toggleAddWaypointButton(); });
+  connect(item, &WaypointListItem::emptinessChanged, [this]() {
+    toggleAddWaypointButton();
+    toggleSaveButton();
+  });
   connect(item, &WaypointListItem::deleteItem, m_parent, &CreateRouteDialog::removeWaypoint);
 
   setRemovable();
   toggleAddWaypointButton();
+  toggleSaveButton();
 }
 
 void CreateRouteDialog::Private::removeWaypoint(WaypointListItem* item)
@@ -107,6 +113,7 @@ void CreateRouteDialog::Private::removeWaypoint(WaypointListItem* item)
 
   setRemovable();
   toggleAddWaypointButton();
+  toggleSaveButton();
 }
 
 QStringList CreateRouteDialog::Private::waypointsNames()
@@ -132,25 +139,6 @@ void CreateRouteDialog::Private::clearLayout()
     delete child->widget();
     delete child;
   }
-}
-
-void CreateRouteDialog::Private::outputPoints()
-{
-  QString message;
-
-  if (const auto& names = waypointsNames(); names.isEmpty())
-  {
-    message = "No points were added to route";
-  }
-  else
-  {
-    for (const auto& name : names)
-    {
-      message += name + "\n";
-    }
-  }
-
-  QMessageBox::information(m_parent, "Route points", message, QMessageBox::Ok);
 }
 
 void CreateRouteDialog::Private::setRemovable() const
@@ -204,9 +192,33 @@ void CreateRouteDialog::Private::toggleAddWaypointButton() const
   ui_add_waypoint_button->setEnabled(true);
 }
 
-CreateRouteDialog::CreateRouteDialog(QWidget* parent, const QStringList& points)
+void CreateRouteDialog::Private::toggleSaveButton() const
+{
+  auto non_empty = 0;
+
+  for (const auto item : ui_waypoint_items_list->findChildren<WaypointListItem*>())
+  {
+    if (!item->isEmpty())
+    {
+      ++non_empty;
+    }
+  }
+
+  if (non_empty >= MIN_ELEMENTS_TO_SAVE)
+  {
+    ui_save_button->setEnabled(true);
+    ui_save_button->setToolTip("");
+  }
+  else
+  {
+    ui_save_button->setDisabled(true);
+    ui_save_button->setToolTip("Cannot save route with less than 2 elements");
+  }
+}
+
+CreateRouteDialog::CreateRouteDialog(const WaypointRoute& database, QWidget* parent)
   : QDialog(parent)
-  , m_ptr(new Private(this, points))
+  , m_ptr(new Private(database, this))
 {
   setFixedSize(size());
 };
@@ -224,12 +236,7 @@ void CreateRouteDialog::removeWaypoint() const
   m_ptr->removeWaypoint(item);
 }
 
-void CreateRouteDialog::accept()
+QStringList CreateRouteDialog::waypointsList()
 {
-  if (const auto& waypoints = m_ptr->waypointsNames(); !waypoints.isEmpty())
-  {
-    emit saveRoute(waypoints);
-  }
-
-  QDialog::accept();
+  return m_ptr->waypointsNames();
 }

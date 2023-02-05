@@ -3,20 +3,19 @@
 
 #include <QDialog>
 
+class WaypointRoute;
+
 class CreateRouteDialog: public QDialog
 {
   Q_OBJECT
 
 public:
-  explicit CreateRouteDialog(QWidget* parent = nullptr, const QStringList& points = QStringList());
+  explicit CreateRouteDialog(const WaypointRoute& database, QWidget* parent = nullptr);
   ~CreateRouteDialog() override;
 
-signals:
-  void saveRoute(const QStringList& points);
+  QStringList waypointsList();
 
 private slots:
-  void accept() override;
-
   void addWaypoint() const;
   void removeWaypoint() const;
 

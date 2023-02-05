@@ -21,12 +21,16 @@ RouteType WaypointDatabase::retrieveRoute(int id) const
   return (*route).points;
 }
 
-void WaypointDatabase::addRoute(const Data& route)
+void WaypointDatabase::addRoute(int id, const Points& route)
 {
-  m_database.emplace_back(route);
-}
+  if (id != 0)
+  {
+    throw std::invalid_argument("Invalid id passed");
+  }
 
-size_t WaypointDatabase::routesNumber() const
-{
-  return m_database.size();
+  auto data = Data();
+  data.id = id;
+  data.points = route;
+
+  m_database[id] = data;
 }

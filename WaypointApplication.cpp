@@ -1,53 +1,36 @@
 #include "WaypointApplication.h"
-#include <CreateRouteDialog.h>
-#include <QDebug>
+#include "CreateRouteDialog.h"
+#include "WaypointRoute.h"
 #include "ui_WaypointApplication.h"
 
 class WaypointApplication::Private: public Ui::WaypointAppBase
 {
 public:
-  explicit Private(WaypointApplication* parent = nullptr);
-  explicit Private(WaypointRoute* route, WaypointApplication* parent = nullptr);
-
-  void createDialog(const QStringList& init = QStringList()) const;
+  explicit Private(const WaypointRoute& database, WaypointApplication* parent = nullptr);
   ~Private() = default;
 
 private:
-  WaypointRoute* m_routes;
   WaypointApplication* m_parent;
+  WaypointRoute m_database;
 };
 
-WaypointApplication::Private::Private(WaypointApplication* parent)
+WaypointApplication::Private::Private(const WaypointRoute& database, WaypointApplication* parent)
   : m_parent(parent)
+  , m_database(database)
 {
   setupUi(parent);
-  connect(ui_create_route_button, &QPushButton::clicked, [this]() { createDialog(); });
+
+  connect(ui_create_route_button, &QPushButton::clicked, [this]() {
+    CreateRouteDialog dialog(m_database, m_parent);
+
+    connect(&dialog, &CreateRouteDialog::accepted, [&] { m_database.addRoute(dialog.waypointsList()); });
+    dialog.exec();
+  });
 }
 
-WaypointApplication::Private::Private(WaypointRoute* route, WaypointApplication* parent)
-  : WaypointApplication::Private(parent)
-{
-  m_routes = route;
-
-  connect(ui_load_1_button, &QPushButton::clicked, [this]() { createDialog(m_routes->route(0)); });
-  connect(ui_load_2_button, &QPushButton::clicked, [this]() { createDialog(m_routes->route(1)); });
-}
-
-void WaypointApplication::Private::createDialog(const QStringList& init) const
-{
-  CreateRouteDialog dialog(m_parent, init);
-  connect(&dialog, &CreateRouteDialog::saveRoute, [this](const auto& route) { m_routes->addRoute(route); });
-  dialog.exec();
-}
-
-WaypointApplication::WaypointApplication(QWidget* parent)
-  : WaypointApplication(nullptr, parent)
-{}
-
-WaypointApplication::WaypointApplication(WaypointRoute* route, QWidget* parent)
+WaypointApplication::WaypointApplication(const WaypointRoute& database, QWidget* parent)
   : QMainWindow(parent)
-  , m_ptr(new Private(route, this))
-{
-}
+  , m_ptr(new Private(database, this))
+{}
 
 WaypointApplication::~WaypointApplication() = default;

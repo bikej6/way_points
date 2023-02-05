@@ -7,7 +7,7 @@ QStringList WaypointRoute::route(int id) const
   const auto route = m_database.retrieveRoute(id);
 
   if (!route)
-  {;
+  {
     throw std::invalid_argument("No such route for given id");
   }
 
@@ -31,11 +31,5 @@ void WaypointRoute::addRoute(const QStringList& points)
     data.emplace_back(point.toStdString());
   }
 
-  auto route = Data();
-  route.id = m_database.routesNumber();
-  route.points = data;
-
-  m_database.addRoute(route);
-
-  qInfo() << "Added route " << points << " to database with id " << route.id;
+  m_database.addRoute(0, data);
 }

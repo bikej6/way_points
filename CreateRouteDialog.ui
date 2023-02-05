@@ -33,8 +33,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>486</width>
-        <height>334</height>
+        <width>476</width>
+        <height>300</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ui_waypoint_items_list_layout">
@@ -74,6 +74,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="ui_edit">
+       <property name="text">
+        <string>Edit</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="ui_add_waypoint_spacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -85,13 +92,6 @@
         </size>
        </property>
       </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="ui_output">
-       <property name="text">
-        <string>Output</string>
-       </property>
-      </widget>
      </item>
     </layout>
    </item>
@@ -111,9 +111,22 @@
       </spacer>
      </item>
      <item>
-      <widget class="QDialogButtonBox" name="ui_button_box">
-       <property name="standardButtons">
-        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <widget class="QPushButton" name="ui_save_button">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string notr="true" extracomment="Cannot save route with less than 2 elements"/>
+       </property>
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="ui_cancel_button">
+       <property name="text">
+        <string>Cancel</string>
        </property>
       </widget>
      </item>
